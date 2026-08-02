@@ -4,5 +4,9 @@ class util {
     class functions {
         file = "scripts\util\functions";
         class attachAmmoBoxToStomper{};
+        class curatorSelectedIsKindOf{};
+        class makeSuicideWaypoint{};
+        class prepareDemolitionDrone{};
+        class prepareSniperDrone{};
     };
 };

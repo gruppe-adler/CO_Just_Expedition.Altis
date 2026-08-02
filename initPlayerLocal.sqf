@@ -1,0 +1,20 @@
+params ["_player", "_didJIP"];
+enableSaving [false, false];
+
+enableSentences false;  // disable radio transmissions to be heard and seen on screen 
+
+
+// allow U menu for easier team management
+["InitializePlayer", [player, true]] call BIS_fnc_dynamicGroups;
+
+
+
+// ACE menu with Zeus utilities
+private _prepareDemolitionDroneAction = ["prepareDemolitinDrone","Prepare Demolition Drone","\A3\Drones_F\Air_F_Gamma\UAV_01\Data\UI\Map_UAV_01_CA.paa",{ { _x call UTIL_fnc_prepareDemolitionDrone; } forEach curatorSelected#0; },{"UAV_01_base_F" call UTIL_fnc_curatorSelectedIsKindOf;}] call ace_interact_menu_fnc_createAction;
+[["ACE_ZeusActions"], _prepareDemolitionDroneAction] call ace_interact_menu_fnc_addActionToZeus;
+
+private _prepareSniperDroneAction = ["prepareSniperDrone","Prepare Sniper Drone","\lxWS\air_f_lxWS\Data\UI\UAV_02_CA.paa",{ { _x call UTIL_fnc_prepareSniperDrone; } forEach curatorSelected#0; },{"UAV_02_Base_lxWS" call UTIL_fnc_curatorSelectedIsKindOf;}] call ace_interact_menu_fnc_createAction;
+[["ACE_ZeusActions"], _prepareSniperDroneAction] call ace_interact_menu_fnc_addActionToZeus;
+
+private _makeSuicideWaypointAction = ["makeSuicideWaypoint","Make Suicide Waypoint","\A3\ui_f\data\igui\cfg\simpleTasks\types\destroy_ca.paa",{ { _x call UTIL_fnc_makeSuicideWaypoint; } forEach curatorSelected#2; },{ true /* define condition */}] call ace_interact_menu_fnc_createAction;
+[["ACE_ZeusActions", "ZeusWaypoints"], _makeSuicideWaypointAction] call ace_interact_menu_fnc_addActionToZeus;

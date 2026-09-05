@@ -16,7 +16,7 @@ enableSentences false;  // disable radio transmissions to be heard and seen on s
 		if (isNull curatorCamera) exitWith {};	// only draw when in Zeus mode
 		{
 			_x params ["_drone", "_target"];
-			drawLine3D [ASLToAGL getPosASL _drone, ASLToAGL getPosASL _target, [1,0,0,1]];
+			drawLine3D [ASLToAGL getPosASL _drone, ASLToAGL getPosASL _target, [1,0,0,1], 20];
 		} forEach SuicideDrones;
 	}];
 
@@ -29,7 +29,7 @@ enableSentences false;  // disable radio transmissions to be heard and seen on s
 			// (_this#0) drawLine [getPos zeus1, getPos drone1, [1,0,0,1]];
 			{
 				_x params ["_drone", "_target"];
-				_map drawLine [getPos _drone, getPos _target, [1,0,0,1]];
+				_map drawLine [getPos _drone, getPos _target, [1,0,0,1], 8];
 			} forEach SuicideDrones;
 		}];	
 	}, nil, 

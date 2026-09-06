@@ -21,40 +21,25 @@ if !(_vics#0 isKindOf "UAV_01_base_F") exitWith {
 private _waypoint = _this;
 private _lockOnRadius = 50;
 
+
 // visualize circle for Zeus at which target lock-on will be attempted
-private _lockOnTriggerCircle = createVehicle ["Sign_Circle_F", getWPPos _waypoint, [], 0, "CAN_COLLIDE"];
-_lockOnTriggerCircle remoteExec ["hideObject", 0];				// hide circle for everyone
-_lockOnTriggerCircle setObjectTexture [0,"#(argb,8,8,3)color(0.2,1,0.2,0.1,ca)"];	// make circle green
-_lockOnTriggerCircle setVectorDirAndUp [[0, 0, 1],[0, 1, 0]];	// lay circle flat on ground (again after moving)
-_lockOnTriggerCircle setObjectScale _lockOnRadius/17;			// scale to proper size (circle has a 17m radius by default)
-["zen_common_execute", [{	// show circle for Zeus
-		params ["_lockOnTriggerCircle"];
-		private _hide = isNull curatorCamera;	// hide if not in Zeus mode
-		_lockOnTriggerCircle hideObject _hide;
-	}, [_lockOnTriggerCircle]]] call CBA_fnc_globalEvent;
-// 2D circle on map
-_lockOnTriggerCircleMarker = createMarkerLocal ["lockOnTriggerCircleMarker", getWPPos _waypoint];
-_lockOnTriggerCircleMarker setMarkerShapeLocal "ELLIPSE";
-_lockOnTriggerCircleMarker setMarkerSizeLocal [_lockOnRadius, _lockOnRadius];
-_lockOnTriggerCircleMarker setMarkerAlphaLocal 0.3;
-_lockOnTriggerCircleMarker setMarkerColorLocal "ColorGreen";
-_lockOnTriggerCircleMarker setMarkerBrushLocal "SolidBorder";
+private _circles = [getWPPos _waypoint] call UTIL_fnc_createLockOnCircle;
+_circles params ["_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
+_waypoint setWaypointDescription format ["LockOnCircles,%1,%2", netId _lockOnTriggerCircle, _lockOnTriggerCircleMarker];
 
 
 // steer drone into target if it is close enough
 [{ 	// condition code
-	params ["_waypoint", "_lockOnRadius", "_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
+	params ["_waypoint", "_lockOnRadius"];
 	private _dronePos = getPos leader (_waypoint#0);
 	private _distance = ( _dronePos distance2D (getWPPos _waypoint) ); 	// if drone to waypoint distance gets below lock on radius
 	// systemChat format ["%1m", floor _distance];
 	_distance < _lockOnRadius;	// condition at which the suicide drone will start searching for targets
 }, 	
 { 
-	params ["_waypoint", "_lockOnRadius", "_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
+	params ["_waypoint", "_lockOnRadius"];
 
-	// remove green lock-on circles
-	deleteVehicle _lockOnTriggerCircle;
-	deleteMarker _lockOnTriggerCircleMarker;
+	[_waypoint] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
 
 	private _searchRadius = _lockOnRadius*1.5;
 
@@ -143,12 +128,13 @@ _lockOnTriggerCircleMarker setMarkerBrushLocal "SolidBorder";
 
 		}, 0, [_drone, _target]] call CBA_fnc_addPerFrameHandler;
 	} forEach (assignedVehicles (_waypoint#0));
-}, [_waypoint, _lockOnRadius, _lockOnTriggerCircle, _lockOnTriggerCircleMarker], 
+}, [_waypoint, _lockOnRadius], 
 
 // timeout time and code
 60, 
 {
-	params ["_waypoint", "_lockOnRadius", "_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
+	params ["_waypoint", "_lockOnRadius"];
 	diag_log format ["fn_makeSuicideWaypoint.sqf: Waypoint %1 not reached before timeout.", _waypoint];
+	[_waypoint] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
 }
 ] call CBA_fnc_waitUntilAndExecute;

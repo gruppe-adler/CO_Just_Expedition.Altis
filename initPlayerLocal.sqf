@@ -38,6 +38,21 @@ enableSentences false;  // disable radio transmissions to be heard and seen on s
 	{ diag_log "initPlayerLocal.sqf: Couldn't register draw handler for suicide drone targets on Zeus map" }
 	] call CBA_fnc_waitUntilAndExecute;
 
+
+	// move green circles when suicide waypoints move
+	(getAssignedCuratorLogic player) addEventHandler ["CuratorWaypointEdited", {
+		params ["_curator", "_group", "_waypointID"];
+
+		private _waypoint = [_group,_waypointID];
+		private _didDelete = [_waypoint] call UTIL_fnc_deleteLockOnCircle;	// delete old circles
+		if (_didDelete) then {
+			// create new circles (on new position)
+			private _circles = [getWPPos _waypoint] call UTIL_fnc_createLockOnCircle;
+			_circles params ["_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
+			_waypoint setWaypointDescription format ["LockOnCircles,%1,%2", netId _lockOnTriggerCircle, _lockOnTriggerCircleMarker];
+		};
+	}];
+
     [_thisType, _thisId] call CBA_fnc_removeEventHandler;	// remove event immediately
 }] call CBA_fnc_addEventHandlerArgs;
 

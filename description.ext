@@ -2,6 +2,7 @@
 
 class CfgFunctions {
     createShortcuts = 1;
+    #include "scripts\craters\funcs.hpp"                // terrain deformation on artillery impacts
     #include "scripts\util\funcs.hpp"                   // various mission specific utility functions
 };
 

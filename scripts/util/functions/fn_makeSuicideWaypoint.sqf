@@ -123,8 +123,8 @@ _waypoint setWaypointDescription format ["LockOnCircles,%1,%2", netId _lockOnTri
 			};
 
 			private _forwardVector = vectorNormalized ((getPos _target) vectorDiff (getPos _drone));
-			_targetVelocity = _forwardVector vectorMultiply 30;
-			_drone addForce [_targetVelocity, [0,0,0]];
+			_pullForce = _forwardVector vectorMultiply 50;
+			_drone addForce [_pullForce, [0,0,0]];
 
 		}, 0, [_drone, _target]] call CBA_fnc_addPerFrameHandler;
 	} forEach (assignedVehicles (_waypoint#0));

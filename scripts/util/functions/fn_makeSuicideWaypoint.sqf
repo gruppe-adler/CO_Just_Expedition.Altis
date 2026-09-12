@@ -24,8 +24,8 @@ private _lockOnRadius = 50;
 
 // visualize circle for Zeus at which target lock-on will be attempted
 private _circles = [getWPPos _waypoint] call UTIL_fnc_createLockOnCircle;
-_circles params ["_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
-_waypoint setWaypointDescription format ["LockOnCircles,%1,%2", netId _lockOnTriggerCircle, _lockOnTriggerCircleMarker];
+_circles params ["_helper", "_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
+_waypoint setWaypointDescription format ["LockOnCircle,%1,%2,%3", netId _helper, netId _lockOnTriggerCircle, _lockOnTriggerCircleMarker];
 
 
 // steer drone into target if it is close enough

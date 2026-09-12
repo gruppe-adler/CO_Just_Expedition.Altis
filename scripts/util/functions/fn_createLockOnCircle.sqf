@@ -13,7 +13,10 @@ Example:
 params ["_position"];
 
 // 3D circle for curator camera (Zeus)
+private _helper = createVehicle ["RoadCone_F", _position, [], 0, "CAN_COLLIDE"];	// helper object to attach circle to
+_helper remoteExec ["hideObject", 0];		// hide circle for everyone
 private _lockOnTriggerCircle = createVehicle ["Sign_Circle_F", _position, [], 0, "CAN_COLLIDE"];
+_lockOnTriggerCircle attachTo [_helper, [0, 0, 0]];	// attach circle to helper object
 _lockOnTriggerCircle remoteExec ["hideObject", 0];		// hide circle for everyone
 ["zen_common_execute", [{	// show circle for Zeus
 		if (isNull curatorCamera) exitWith {};	// keep hidden if not in Zeus mode
@@ -31,4 +34,4 @@ _lockOnTriggerCircleMarker setMarkerAlphaLocal 0.3;
 _lockOnTriggerCircleMarker setMarkerColorLocal "ColorGreen";
 _lockOnTriggerCircleMarker setMarkerBrushLocal "SolidBorder";
 
-[_lockOnTriggerCircle, _lockOnTriggerCircleMarker];
+[_helper, _lockOnTriggerCircle, _lockOnTriggerCircleMarker];

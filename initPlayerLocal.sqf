@@ -44,12 +44,16 @@ enableSentences false;  // disable radio transmissions to be heard and seen on s
 		params ["_curator", "_group", "_waypointID"];
 
 		private _waypoint = [_group,_waypointID];
-		private _didDelete = [_waypoint] call UTIL_fnc_deleteLockOnCircle;	// delete old circles
-		if (_didDelete) then {
-			// create new circles (on new position)
-			private _circles = [getWPPos _waypoint] call UTIL_fnc_createLockOnCircle;
-			_circles params ["_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
-			_waypoint setWaypointDescription format ["LockOnCircles,%1,%2", netId _lockOnTriggerCircle, _lockOnTriggerCircleMarker];
+		private _description = waypointDescription _waypoint;
+		if (_description != "") then {
+			private _waypointDescriptionTokens = _description splitString ",";
+			if (_waypointDescriptionTokens#0 != "LockOnCircle") exitWith  {
+				diag_log format ["initPlayerLocal.sqf: Unknown waypoint description read: %1", _description];
+			};
+			private _helper = objectFromNetId (_waypointDescriptionTokens#1);
+			private _lockOnTriggerCircleMarker = _waypointDescriptionTokens#3;
+			_helper setPos (getWPPos _waypoint);	// will implicitly move the green 3D circle
+			_lockOnTriggerCircleMarker setMarkerPos (getWPPos _waypoint);
 		};
 	}];
 

@@ -23,28 +23,32 @@ private _lockOnRadius = 50;
 
 
 // visualize circle for Zeus at which target lock-on will be attempted
-private _circles = [getWPPos _waypoint] call UTIL_fnc_createLockOnCircle;
-_circles params ["_helper", "_lockOnTriggerCircle", "_lockOnTriggerCircleMarker"];
-_waypoint setWaypointDescription format ["LockOnCircle,%1,%2,%3", netId _helper, netId _lockOnTriggerCircle, _lockOnTriggerCircleMarker];
+private _circles = [_waypoint, _lockOnRadius] call UTIL_fnc_createLockOnCircle;
+
+
+// store lock circles on group object
+_circles params ["_circleCenter", "_lockOnTriggerCircleMarker"];
+private _existingSuicideWaypoints = _waypointGroup getVariable ["LockOnCircles", []];
+_existingSuicideWaypoints pushBack (netId _circleCenter);
+_waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 
 
 // steer drone into target if it is close enough
 [{ 	// condition code
-	params ["_waypoint", "_lockOnRadius"];
-	private _dronePos = getPos leader (_waypoint#0);
-	private _distance = ( _dronePos distance2D (getWPPos _waypoint) ); 	// if drone to waypoint distance gets below lock on radius
-	// systemChat format ["%1m", floor _distance];
+	params ["_waypointGroup", "_circleCenter", "_lockOnRadius"];
+	private _dronePos = getPos leader (_waypointGroup);
+	private _distance = ( _dronePos distance2D (getPos _circleCenter) ); 	// if drone to waypoint distance gets below lock on radius
 	_distance < _lockOnRadius;	// condition at which the suicide drone will start searching for targets
 }, 	
 { 
-	params ["_waypoint", "_lockOnRadius"];
+	params ["_waypointGroup", "_circleCenter", "_lockOnRadius"];
 
-	[_waypoint] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
+	[_circleCenter] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
 
 	private _searchRadius = _lockOnRadius*1.5;
 
 	// visualize search radius for Zeus
-	private _search4TargetsCircle = createVehicle ["Sign_Circle_F", getWPPos _waypoint, [], 0, "CAN_COLLIDE"];
+	private _search4TargetsCircle = createVehicle ["Sign_Circle_F", getPos _circleCenter, [], 0, "CAN_COLLIDE"];
 	_search4TargetsCircle remoteExec ["hideObject", 0];				// hide circle for everyone
 	_search4TargetsCircle setObjectTexture [0,"#(argb,8,8,3)color(1,0,0,0.1,ca)"];	// make circle red
 	_search4TargetsCircle setVectorDirAndUp [[0, 0, 1],[0, 1, 0]];	// lay circle flat on ground
@@ -54,12 +58,10 @@ _waypoint setWaypointDescription format ["LockOnCircle,%1,%2,%3", netId _helper,
 			params ["_search4TargetsCircle"];
 			private _hide = isNull curatorCamera;	// hide if not in Zeus mode
 			_search4TargetsCircle hideObject _hide;
-			if (!_hide) then {
-				playSound "Beep_Target";	// notification sound					
-			};
+			if (!_hide) then {	playSound "Beep_Target"; };	// notification sound
 		}, [_search4TargetsCircle]]] call CBA_fnc_globalEvent;
 	// 2D circle on map
-	_search4TargetsCircleMarker = createMarkerLocal ["search4TargetsCircleMarker", getWPPos _waypoint];
+	_search4TargetsCircleMarker = createMarkerLocal [format ["search4TargetsCircleMarker_%1_%2", _waypoint, diag_tickTime], getPos _circleCenter];
 	_search4TargetsCircleMarker setMarkerShapeLocal "ELLIPSE";
 	_search4TargetsCircleMarker setMarkerSizeLocal [_searchRadius, _searchRadius];
 	_search4TargetsCircleMarker setMarkerAlphaLocal 0.3;
@@ -74,19 +76,17 @@ _waypoint setWaypointDescription format ["LockOnCircle,%1,%2,%3", netId _helper,
 
 
 	// prepare target list
-	private _potentialTargets = nearestObjects [getWPPos _waypoint, ["CAManBase", "Car", "Tank"], _searchRadius, true];   // nearby people or vics are prio #2
+	private _potentialTargets = nearestObjects [getPos _circleCenter, ["CAManBase", "Car", "Tank"], _searchRadius, true];   // nearby people or vics are prio #2
 	private _aliveTargets = _potentialTargets select { alive _x };
 	{
 		private _drone = _x;
 
 		// acquire target
-		private _target = waypointAttachedVehicle _waypoint;	// attached vic is prio #1
-		if (isNull _target) then {
-			_target = selectRandom _aliveTargets;
-		};
-
+		private _target = selectRandom _aliveTargets;
 		if (isNil "_target") exitWith {
-			// systemChat "No target for suicide drone found";
+			[{ 
+				["zen_common_showMessage", ["No target for suicide drone found"], allCurators] call CBA_fnc_targetEvent;	// send message to all curators
+			}, [], 1] call CBA_fnc_waitAndExecute;	// wait 1s to not collide with beep sound and red circle appearing
 		};
 		
 		_drone setVariable ["suicideTarget", _target, true];
@@ -127,14 +127,15 @@ _waypoint setWaypointDescription format ["LockOnCircle,%1,%2,%3", netId _helper,
 			_drone addForce [_pullForce, [0,0,0]];
 
 		}, 0, [_drone, _target]] call CBA_fnc_addPerFrameHandler;
-	} forEach (assignedVehicles (_waypoint#0));
-}, [_waypoint, _lockOnRadius], 
+	} forEach (assignedVehicles _waypointGroup);
+}, 
+[_waypointGroup, _circleCenter, _lockOnRadius], 	// parameter list (for condition and code)
 
 // timeout time and code
 60, 
 {
-	params ["_waypoint", "_lockOnRadius"];
-	diag_log format ["fn_makeSuicideWaypoint.sqf: Waypoint %1 not reached before timeout.", _waypoint];
-	[_waypoint] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
+	params ["_waypointGroup", "_circleCenter", "_lockOnRadius"];
+	["zen_common_showMessage", ["Suicide waypoint not reached before timeout."], allCurators] call CBA_fnc_targetEvent;	// send message to all curators
+	[_circleCenter] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
 }
 ] call CBA_fnc_waitUntilAndExecute;

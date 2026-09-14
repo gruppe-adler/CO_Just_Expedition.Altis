@@ -38,23 +38,43 @@ enableSentences false;  // disable radio transmissions to be heard and seen on s
 	{ diag_log "initPlayerLocal.sqf: Couldn't register draw handler for suicide drone targets on Zeus map" }
 	] call CBA_fnc_waitUntilAndExecute;
 
+	// remember which waypoint was last selected by Zeus
+	(getAssignedCuratorLogic player) addEventHandler ["CuratorWaypointSelectionChanged", {
+		params ["_curator", "_group", "_waypointID"];
+
+	}];
 
 	// move green circles when suicide waypoints move
 	(getAssignedCuratorLogic player) addEventHandler ["CuratorWaypointEdited", {
 		params ["_curator", "_group", "_waypointID"];
 
-		private _waypoint = [_group,_waypointID];
-		private _description = waypointDescription _waypoint;
-		if (_description != "") then {
-			private _waypointDescriptionTokens = _description splitString ",";
-			if (_waypointDescriptionTokens#0 != "LockOnCircle") exitWith  {
-				diag_log format ["initPlayerLocal.sqf: Unknown waypoint description read: %1", _description];
+		private _movedWaypoint = [_group,_waypointID];
+		private _LockOnCircles = _group getVariable ["LockOnCircles", []];
+		{
+			private _circleCenter = objectFromNetId _x;
+			private _waypoint = _circleCenter getVariable ["LockOnTriggerWaypoint", objNull];
+			if (_waypoint isEqualTo _movedWaypoint) then {
+				_circleCenter setPos (getWPPos _waypoint);	// will implicitly move the green 3D circle
+				private _lockOnTriggerCircleMarker = _circleCenter getVariable ["LockOnTriggerCircleMarkerName", ""];
+				_lockOnTriggerCircleMarker setMarkerPos (getWPPos _waypoint);	// move 2D circle on map
 			};
-			private _helper = objectFromNetId (_waypointDescriptionTokens#1);
-			private _lockOnTriggerCircleMarker = _waypointDescriptionTokens#3;
-			_helper setPos (getWPPos _waypoint);	// will implicitly move the green 3D circle
-			_lockOnTriggerCircleMarker setMarkerPos (getWPPos _waypoint);
-		};
+		} forEach _LockOnCircles;
+	}];
+
+	// react to Zeus deleting waypoints
+	(getAssignedCuratorLogic player) addEventHandler ["CuratorWaypointDeleted", {
+		params ["_curator", "_group", "_waypointID"];
+
+		private _deletedWaypoint = [_group,_waypointID];
+		private _LockOnCircles = _group getVariable ["LockOnCircles", []];
+		{
+			private _circleCenter = objectFromNetId _x;
+			private _waypoint = _circleCenter getVariable ["LockOnTriggerWaypoint", objNull];
+			private _shallDelete = (_waypoint isEqualTo _deletedWaypoint) || !(_waypoint in (waypoints _group));
+			if (_shallDelete) then {
+				[_circleCenter] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
+			};			
+		} forEach _LockOnCircles;
 	}];
 
     [_thisType, _thisId] call CBA_fnc_removeEventHandler;	// remove event immediately

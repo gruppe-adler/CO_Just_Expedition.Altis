@@ -90,3 +90,7 @@ private _prepareSniperDroneAction = ["prepareSniperDrone","Prepare Sniper Drone"
 
 private _makeSuicideWaypointAction = ["makeSuicideWaypoint","Make Suicide Waypoint","\A3\ui_f\data\igui\cfg\simpleTasks\types\destroy_ca.paa",{ { _x call UTIL_fnc_makeSuicideWaypoint; } forEach curatorSelected#2; },{ true /* define condition */}] call ace_interact_menu_fnc_createAction;
 [["ACE_ZeusActions", "ZeusWaypoints"], _makeSuicideWaypointAction] call ace_interact_menu_fnc_addActionToZeus;
+
+// private _detonateDroneAction = ["detonateDrone","Detonate Drone","\A3\ui_f\data\igui\cfg\simpleTasks\types\destroy_ca.paa", { (vehicle remoteControlled player) setDamage 1;  },{ true }] call ace_interact_menu_fnc_createAction;
+private _detonateDroneAction = ["detonateDrone","Detonate Drone","\A3\ui_f\data\igui\cfg\simpleTasks\types\destroy_ca.paa", { (vehicle remoteControlled player) setDamage 1;  },{ !(((attachedObjects vehicle remoteControlled player) select { _x isKindOf "ModuleExplosive_DemoCharge_F"}) isEqualTo []) }] call ace_interact_menu_fnc_createAction;
+ ["UAV_01_base_F", 1, ["ACE_SelfActions"], _detonateDroneAction, true] call ace_interact_menu_fnc_addActionToClass;

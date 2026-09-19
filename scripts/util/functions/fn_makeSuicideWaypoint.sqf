@@ -19,7 +19,8 @@ if !(_vics#0 isKindOf "UAV_01_base_F") exitWith {
 };
 
 private _waypoint = _this;
-private _lockOnRadius = 50;
+private _lockOnRadius = 50;		// at what radius will drone try to find a target to lock onto
+private _timeout = 60;			// when to stop trying to reach the lock-on zone (in seconds)
 
 
 // visualize circle for Zeus at which target lock-on will be attempted
@@ -48,31 +49,43 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 	private _searchRadius = _lockOnRadius*1.5;
 
 	// visualize search radius for Zeus
-	private _search4TargetsCircle = createVehicle ["Sign_Circle_F", getPos _circleCenter, [], 0, "CAN_COLLIDE"];
+	private _search4TargetsCircle = createSimpleObject ["\a3\Modules_F_Curator\Ordnance\surfaceMortar.p3d", getPos _circleCenter];
 	_search4TargetsCircle remoteExec ["hideObject", 0];				// hide circle for everyone
-	_search4TargetsCircle setObjectTexture [0,"#(argb,8,8,3)color(1,0,0,0.1,ca)"];	// make circle red
-	_search4TargetsCircle setVectorDirAndUp [[0, 0, 1],[0, 1, 0]];	// lay circle flat on ground
-	_search4TargetsCircle setObjectScale _searchRadius/17;			// scale to proper size (circle has a 17m radius by default)
 	// show circle for Zeus
 	["zen_common_execute", [{
-			params ["_search4TargetsCircle"];
+			params ["_search4TargetsCircle", "_searchRadius"];
 			private _hide = isNull curatorCamera;	// hide if not in Zeus mode
 			_search4TargetsCircle hideObject _hide;
 			if (!_hide) then {	playSound "Beep_Target"; };	// notification sound
-		}, [_search4TargetsCircle]]] call CBA_fnc_globalEvent;
-	// 2D circle on map
-	_search4TargetsCircleMarker = createMarkerLocal [format ["search4TargetsCircleMarker_%1_%2", _waypoint, diag_tickTime], getPos _circleCenter];
-	_search4TargetsCircleMarker setMarkerShapeLocal "ELLIPSE";
-	_search4TargetsCircleMarker setMarkerSizeLocal [_searchRadius, _searchRadius];
-	_search4TargetsCircleMarker setMarkerAlphaLocal 0.3;
-	_search4TargetsCircleMarker setMarkerColorLocal "ColorRed";
-	_search4TargetsCircleMarker setMarkerBrushLocal "SolidBorder";
-	// delete circles after 4s
-	[{ 
-		params ["_search4TargetsCircle", "_search4TargetsCircleMarker"];
-		deleteVehicle _search4TargetsCircle; 
-		deleteMarker _search4TargetsCircleMarker;
-	}, [_search4TargetsCircle, _search4TargetsCircleMarker], 4] call CBA_fnc_waitAndExecute;
+			_search4TargetsCircle setObjectScale _searchRadius/40;			// scale to proper size (circle has a 17m radius by default)
+
+			// 2D circle on map
+			_search4TargetsCircleMarker = createMarkerLocal [format ["search4TargetsCircleMarker_%1_%2", _waypoint, diag_tickTime], getPos _circleCenter];
+			_search4TargetsCircleMarker setMarkerShapeLocal "ELLIPSE";
+			_search4TargetsCircleMarker setMarkerSizeLocal [_searchRadius, _searchRadius];
+			_search4TargetsCircleMarker setMarkerAlphaLocal 0.7;
+			_search4TargetsCircleMarker setMarkerColorLocal "ColorYellow";
+			_search4TargetsCircleMarker setMarkerBrushLocal "SolidBorder";
+
+
+			// blink circles to indicate different meaning (searching for targets)
+			[_search4TargetsCircle, _search4TargetsCircleMarker] spawn {
+				params ["_search4TargetsCircle", "_search4TargetsCircleMarker"];
+				for "_i" from 1 to 10 do { 
+					sleep 0.2;
+					_search4TargetsCircle hideObject (_i%2 > 0);
+					_search4TargetsCircleMarker setMarkerAlphaLocal (_i%2 * 0.7);
+				};
+				
+				sleep 0.2;				
+				// delete after blinking
+				deleteVehicle _search4TargetsCircle; 
+				deleteMarker _search4TargetsCircleMarker;
+			};
+		}, 
+		[_search4TargetsCircle, _searchRadius]], 
+		allCurators
+	] call CBA_fnc_targetEvent;
 
 
 	// prepare target list
@@ -129,13 +142,13 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 		}, 0, [_drone, _target]] call CBA_fnc_addPerFrameHandler;
 	} forEach (assignedVehicles _waypointGroup);
 }, 
-[_waypointGroup, _circleCenter, _lockOnRadius], 	// parameter list (for condition and code)
+[_waypointGroup, _circleCenter, _lockOnRadius, _timeout], 	// parameter list (for condition and code)
 
 // timeout time and code
-60, 
+_timeout, 
 {
-	params ["_waypointGroup", "_circleCenter", "_lockOnRadius"];
-	["zen_common_showMessage", ["Suicide waypoint not reached before timeout."], allCurators] call CBA_fnc_targetEvent;	// send message to all curators
+	params ["_waypointGroup", "_circleCenter", "_lockOnRadius", "_timeout"];
+	["zen_common_showMessage", [format ["Suicide waypoint not reached before timeout of %1 seconds", _timeout]], allCurators] call CBA_fnc_targetEvent;	// send message to all curators
 	[_circleCenter] call UTIL_fnc_deleteLockOnCircle;	// remove green lock-on circles
 }
 ] call CBA_fnc_waitUntilAndExecute;

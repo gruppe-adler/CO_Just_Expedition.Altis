@@ -49,7 +49,7 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 	private _searchRadius = _lockOnRadius*1.5;
 
 	// visualize search radius for Zeus
-	private _search4TargetsCircle = createSimpleObject ["\a3\Modules_F_Curator\Ordnance\surfaceMortar.p3d", getPos _circleCenter];
+	private _search4TargetsCircle = createSimpleObject ["\a3\Modules_F_Curator\Ordnance\surfaceHowitzer.p3d", getPos _circleCenter];
 	_search4TargetsCircle remoteExec ["hideObject", 0];				// hide circle for everyone
 	// show circle for Zeus
 	["zen_common_execute", [{
@@ -57,7 +57,7 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 			private _hide = isNull curatorCamera;	// hide if not in Zeus mode
 			_search4TargetsCircle hideObject _hide;
 			if (!_hide) then {	playSound "Beep_Target"; };	// notification sound
-			_search4TargetsCircle setObjectScale _searchRadius/40;			// scale to proper size (circle has a 17m radius by default)
+			_search4TargetsCircle setObjectScale _searchRadius/80;			// scale to proper size (circle has a 17m radius by default)
 
 			// 2D circle on map
 			_search4TargetsCircleMarker = createMarkerLocal [format ["search4TargetsCircleMarker_%1_%2", _waypoint, diag_tickTime], getPos _circleCenter];
@@ -72,12 +72,12 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 			[_search4TargetsCircle, _search4TargetsCircleMarker] spawn {
 				params ["_search4TargetsCircle", "_search4TargetsCircleMarker"];
 				for "_i" from 1 to 10 do { 
-					sleep 0.2;
+					sleep 0.3;
 					_search4TargetsCircle hideObject (_i%2 > 0);
 					_search4TargetsCircleMarker setMarkerAlphaLocal (_i%2 * 0.7);
 				};
 				
-				sleep 0.2;				
+				sleep 0.6;				
 				// delete after blinking
 				deleteVehicle _search4TargetsCircle; 
 				deleteMarker _search4TargetsCircleMarker;
@@ -127,9 +127,12 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 		}];	
 
 		// add loop to lock on to target (inspired by Drongo's work but heavily modified)
+		private _isInfantry = _target isKindOf "CAManBase";
 		[{
 			params ["_args", "_handle"];
-			_args params ["_drone", "_target"];
+			_args params ["_drone", "_target", "_isInfantry"];
+
+			if (_isInfantry && { (_drone distance2D _target) < 1 } ) then { _drone setDamage 1; };	// infantry needs special handling because it is so tiny that collision will take to long and look weird
 
 			if ((!alive _drone) || { !alive _target } ) then {			
 				[_handle] call CBA_fnc_removePerFrameHandler;	// exit loop
@@ -139,7 +142,7 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 			_pullForce = _forwardVector vectorMultiply 50;
 			_drone addForce [_pullForce, [0,0,0]];
 
-		}, 0, [_drone, _target]] call CBA_fnc_addPerFrameHandler;
+		}, 0, [_drone, _target, _isInfantry]] call CBA_fnc_addPerFrameHandler;
 	} forEach (assignedVehicles _waypointGroup);
 }, 
 [_waypointGroup, _circleCenter, _lockOnRadius, _timeout], 	// parameter list (for condition and code)

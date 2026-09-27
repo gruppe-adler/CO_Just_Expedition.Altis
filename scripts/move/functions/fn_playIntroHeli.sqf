@@ -14,4 +14,6 @@ private _unitCaptureData =
     #include "data_heli_landing1.sqf"
 ;
 
-[intro_heli, _unitCaptureData] spawn BIS_fnc_unitPlay;
+private _spawnedScriptHandle = [intro_heli, _unitCaptureData] spawn BIS_fnc_unitPlay;
+waitUntil {scriptDone _spawnedScriptHandle};
+intro_heli engineOn false;

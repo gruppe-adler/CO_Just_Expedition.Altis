@@ -10,5 +10,6 @@ class util {
         class makeSuicideWaypoint{};
         class prepareDemolitionDrone{};
         class prepareSniperDrone{};
+        class spawnDroneSwarm{};
     };
 };

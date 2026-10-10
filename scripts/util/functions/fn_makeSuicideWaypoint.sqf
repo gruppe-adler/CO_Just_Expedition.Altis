@@ -95,7 +95,8 @@ _waypointGroup setVariable ["LockOnCircles", _existingSuicideWaypoints, true];
 		private _drone = _x;
 
 		// acquire target
-		private _target = selectRandom _aliveTargets;
+		private _visibleTargets = _aliveTargets select { [objNull, "VIEW"] checkVisibility [getPosASL _drone, getPosASL _x] != 0 };		// check line-of-sight
+		private _target = selectRandom _visibleTargets;
 		if (isNil "_target") exitWith {
 			[{ 
 				["zen_common_showMessage", ["No target for suicide drone found"], allCurators] call CBA_fnc_targetEvent;	// send message to all curators

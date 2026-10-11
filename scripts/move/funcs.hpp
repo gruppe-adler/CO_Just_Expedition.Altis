@@ -4,6 +4,7 @@ class move {
     tag = "move";
     class functions {
         file = "scripts\move\functions";
+        class playIntro{};
         class playIntroHeli{};
     };
 };
